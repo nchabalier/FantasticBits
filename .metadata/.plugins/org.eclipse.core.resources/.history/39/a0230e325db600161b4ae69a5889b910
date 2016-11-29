@@ -1,0 +1,6 @@
+
+public class Mouvement {
+	public Entity entity;
+	public Point pointB;
+	public int power;
+}

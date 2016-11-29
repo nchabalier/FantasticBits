@@ -1,0 +1,12 @@
+
+public class Collision {
+	private Entity entityA;
+	private Entity entityB;
+	private float t;
+	
+	public Collision(Entity entityA, Entity entityB, float t) {
+		this.entityA = entityA;
+		this.entityB = entityB;
+		this.t = t;
+	}
+}

@@ -1,0 +1,117 @@
+import java.util.List;
+
+public class Entity {
+	private int id;
+	private int x;
+	private int y;
+	private int vx;
+	private int vy;
+	private int state;
+	
+	public Entity(int x, int y) {
+		super();
+		this.x = x;
+		this.y = y;
+	}
+	
+	public Entity(int id, int x, int y, int vx, int vy) {
+		this(x, y);
+		this.id = id;
+		this.vx = vx;
+		this.vy = vy;
+	}
+	
+	public Entity(int id, int x, int y, int vx, int vy, int state) {
+		this(id, x, y, vx, vy);
+		this.state = state;
+	}
+
+	public int getState() {
+		return state;
+	}
+
+	public void setState(int state) {
+		this.state = state;
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public int getX() {
+		return x;
+	}
+
+	public void setX(int x) {
+		this.x = x;
+	}
+
+	public int getY() {
+		return y;
+	}
+
+	public void setY(int y) {
+		this.y = y;
+	}
+
+	public int getVx() {
+		return vx;
+	}
+
+	public void setVx(int vx) {
+		this.vx = vx;
+	}
+
+	public int getVy() {
+		return vy;
+	}
+
+	public void setVy(int vy) {
+		this.vy = vy;
+	}
+	
+	public Entity searchNearestSnaffle(List<Entity> snaffles) {
+		int minDistance = Integer.MAX_VALUE;
+		Entity nearestEntity = null;
+		
+		for(Entity snaffle : snaffles) {
+			int newDistance = computeDistanceSquare(snaffle);
+			if(newDistance < minDistance) {
+				minDistance = newDistance;
+				nearestEntity = snaffle;
+			}
+		}
+		
+		return nearestEntity;
+	}
+	
+	public int computeDistanceSquare(Entity entity) {
+		return (this.x-entity.x)*(this.x-entity.x) + (this.y-entity.y)*(this.y-entity.y);
+	}
+	
+	
+	public boolean isUsefulToAccio(Entity entity, Entity goal) {
+		if(isBetweenInX(entity, goal) && computeDistanceSquare(entity)>16000) {
+			return true;
+		}
+		return false;
+	}
+	
+	/*
+	 * Return true if current entity is between the two other in axis X
+	 */
+	public boolean isBetweenInX(Entity entity1, Entity entity2) {
+		if(entity1.x<this.x && entity2.x > this.x) {
+			return true;
+		}
+		if(entity1.x>this.x && entity2.x < this.x) {
+			return true;
+		}
+		return false;
+	}
+	
+}

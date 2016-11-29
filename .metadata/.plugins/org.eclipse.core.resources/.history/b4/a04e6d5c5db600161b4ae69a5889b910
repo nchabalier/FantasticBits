@@ -1,0 +1,13 @@
+
+public class Mouvement {
+	public Entity entity;
+	public Point pointB;
+	public int power;
+	
+	public Mouvement(Entity entity, Point pointB, int power) {
+		super();
+		this.entity = entity;
+		this.pointB = pointB;
+		this.power = power;
+	}
+}
