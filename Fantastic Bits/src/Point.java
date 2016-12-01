@@ -44,7 +44,7 @@ class Point {
 	}
 	
 	public void print() {
-		System.err.println("POSITION " + x +" " + y);
+		System.err.println(" POSITION " + x +" " + y);
 	}
 
 	public boolean isInsideGame() {

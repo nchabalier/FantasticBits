@@ -9,11 +9,15 @@ class Collision {
 		this.t = t;
 	}
 	
-	public void print() {
+	public void printAll() {
 		System.err.println("----------COLLISION-------------------");
 		this.entityA.printAll();
 		this.entityB.printAll();
 		System.err.println("t="+t);
 		System.err.println("--------------------------------------");
+	}
+	
+	public void print() {
+		System.err.println("Collision: " + entityA.getId() + " and " + entityB.getId() + " at " + t);
 	}
 }

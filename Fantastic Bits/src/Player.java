@@ -28,14 +28,15 @@ class Player {
         
         Movement[] movements = new Movement[4];
         
+        HashMap<Integer, Entity> bludgers = new HashMap<Integer, Entity>();
         // game loop
         while (true) {
             
             List<Entity> wizards = new ArrayList<Entity>();
             List<Entity> opponentWizards = new ArrayList<Entity>();
             List<Entity> snaffles = new ArrayList<Entity>();
-            List<Entity> bludgers = new ArrayList<Entity>();
             List<Entity> allwizards = new ArrayList<Entity>();
+            
             
             int entities = in.nextInt(); // number of entities still in game
             
@@ -65,8 +66,19 @@ class Player {
 					snaffles.add(newEntity);
 					break;
 				case "BLUDGER":
-	                newEntity = new Entity(entityId,x,y,vx,vy,state, 0.9, 200, 2, 8);
-	                bludgers.add(newEntity);
+					
+					Bludger bludger = (Bludger) bludgers.get(entityId);
+					if(bludger==null) {
+						newEntity = new Bludger(entityId,x,y,vx,vy,state, 0.9, 200, 2, 8);
+						bludgers.put(entityId, newEntity);
+						//newEntity.printAll();
+					} else {
+						bludger.update(x,y,vx,vy);
+						//bludger.printAll();
+					}
+	                
+					
+	                
 					break;
 				default:
 					break;
@@ -77,16 +89,18 @@ class Player {
             
 
             
+
+            
             
             //Reset movements
             for(int i=0; i<4; i++) {
             	movements[i] = null;
             }
             
-            for(Entity wizard : wizards) {
-                System.err.println("Vx " + wizard.getVx());
-                System.err.println("Vy " + wizard.getVy());
-            }
+//            for(Entity wizard : wizards) {
+//                System.err.println("Vx " + wizard.getVx());
+//                System.err.println("Vy " + wizard.getVy());
+//            }
             
 
             if(magic<3) {
@@ -103,24 +117,27 @@ class Player {
             magic++;
             
             //Test of bludger movements
-            if(magic == 7) {
-            	Entity bludger = bludgers.get(0);
-            	Entity wizard = wizards.get(0);
-            	
-            	Movement movement = new Movement(bludger,wizard, 1000);
-            	
-            	bludger.addMovement(movement);
-            	
-            	System.err.println("ADD MOVEMENT TO BLUDGER");
-
-            }
+//            if(magic == 7) {
+//            	Entity bludger = bludgers.get(0);
+//            	Entity wizard = wizards.get(0);
+//            	
+//            	Movement movement = new Movement(bludger,wizard, 1000);
+//            	
+//            	bludger.addMovement(movement);
+//            	
+//            	System.err.println("ADD MOVEMENT TO BLUDGER");
+//
+//            }
             
             
             //----------------------------------------------------
             //------------Simulate collisions---------------------
             allwizards.addAll(wizards);
             allwizards.addAll(opponentWizards);
-            allwizards.addAll(bludgers);
+            
+            
+
+            
             /*List<Entity> cloneListWizards = null;
             try {
             	cloneListWizards = cloneList(allwizards);
@@ -128,9 +145,31 @@ class Player {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}*/
-            System.err.println("------------------BEFORE-----------------");
-            //printList(cloneListWizards);
-            play(allwizards, movements);
+            //System.err.println("------------------BEFORE-----------------");
+
+
+            //Move all wizards
+            //FIXME we move only our wizards here
+        	for(int i=0; i<2; i++) {
+        		if(movements[i]!=null) {
+        			wizards.get(i).addMovement(movements[i]);
+        		}
+        	}
+        	
+        	//Move all bludger
+        	for(Entity entity : bludgers.values()) {
+        		Bludger bludger = (Bludger) entity;
+        		Entity wizardChased = bludger.searchNearestEntityExcept(allwizards, bludger.getLastEntityId());
+        		Movement movement = new Movement(entity, wizardChased, 1000);
+        		bludger.addMovement(movement);
+        	}
+        	
+        	
+        	allwizards.addAll(bludgers.values());
+        	//allwizards.addAll(snaffles);
+        	
+        	//printList(allwizards);
+            play(allwizards);
             System.err.println("------------------AFTER-----------------");
             printList(allwizards);
             
@@ -264,18 +303,18 @@ class Player {
     	if(snaffles.size()>1) {
 	    	Entity[] snaffles1 = new Entity[2];
 	    	
-	    	snaffles1[0] = wizards.get(0).searchNearestSnaffle(snaffles);
+	    	snaffles1[0] = wizards.get(0).searchNearestEntity(snaffles);
 	    	//snaffles1[1] = wizards.get(1).searchNearestSnaffleExcept(snaffles, snaffles1[0].getId());
-	    	snaffles1[1] = wizards.get(1).searchNearestSnaffle(snaffles);
+	    	snaffles1[1] = wizards.get(1).searchNearestEntity(snaffles);
 	    	
 	    	double totalDistanceSquare1 = wizards.get(0).computeDistanceSquare(snaffles1[0]);
 	    	totalDistanceSquare1+= wizards.get(1).computeDistanceSquare(snaffles1[1]);
 	    	
 	    	Entity[] snaffles2 = new Entity[2];
 	    	
-	    	snaffles2[1] = wizards.get(1).searchNearestSnaffle(snaffles);
+	    	snaffles2[1] = wizards.get(1).searchNearestEntity(snaffles);
 	    	//snaffles2[0] = wizards.get(0).searchNearestSnaffleExcept(snaffles, snaffles2[1].getId());
-	    	snaffles2[0] = wizards.get(0).searchNearestSnaffle(snaffles);
+	    	snaffles2[0] = wizards.get(0).searchNearestEntity(snaffles);
 	    	
 	    	double totalDistanceSquare2 = wizards.get(0).computeDistanceSquare(snaffles2[0]);
 	    	totalDistanceSquare2+= wizards.get(1).computeDistanceSquare(snaffles2[1]);
@@ -407,21 +446,14 @@ class Player {
     }
     
     
-    static void play(List<Entity> wizards, Movement[] movements) {
+    static void play(List<Entity> wizards) {
     	
-    	
-    	for(int i=0; i<4; i++) {
-    		if(movements[i]!=null) {
-    			wizards.get(i).addMovement(movements[i]);
-    		}
-    	}
     	
         // This tracks the time during the turn. The goal is to reach 1.0
         double t = 0.0;
 
         while (t < 1.0) {
         	
-        	System.err.println("****************** " + t + "**************");
         	
             Collision firstCollision = null;
 
@@ -430,7 +462,7 @@ class Player {
                 // Collision with another pod?
                 for (int j = i + 1; j < wizards.size(); ++j) {
                     Collision col = wizards.get(i).collision(wizards.get(j));
-                    System.err.println();
+                    
                     // If the collision occurs earlier than the one we currently have we keep it
                     if (col != null && col.t + t < 1.0 && (firstCollision == null || col.t < firstCollision.t)) {
                         firstCollision = col;
@@ -443,7 +475,9 @@ class Player {
                 // No collision, we can move the pods until the end of the turn
                 for (int i = 0; i < wizards.size(); ++i) {
                 	//TODO move the wizard after collision
+                	//wizards.get(i).printAll();
                     wizards.get(i).move(1.0 - t);
+                    
                 }
 
                 // End of the turn
@@ -457,11 +491,30 @@ class Player {
 
                 // Play out the collision
                 firstCollision.entityA.bounce(firstCollision.entityB);
+                
+                //Change target of the bludger
+                //TODO: WARNING : what happens if bludger touch 2 wizards in the same tour?
+                if(firstCollision.entityA.getState() == 2) {
+                	if(firstCollision.entityA.getState() == 1) {
+                		Bludger bludger = (Bludger) firstCollision.entityA; 
+                		bludger.setLastEntityId(firstCollision.entityB.id);
+                	}
+                } else {
+                	if(firstCollision.entityB.getState() == 2) {
+                		if(firstCollision.entityA.getState() == 1) {
+                    		Bludger bludger = (Bludger) firstCollision.entityB; 
+                    		bludger.setLastEntityId(firstCollision.entityA.id);
+                		}
+                	}
+                }
+                
                 firstCollision.print();
 
                 t += firstCollision.t;
             }
         }
+        
+
 
         /*for (int i = 0; i < wizards.length; ++i) {
             wizards[i].end();

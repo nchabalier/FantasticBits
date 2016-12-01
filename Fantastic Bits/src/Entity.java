@@ -2,14 +2,22 @@ import java.util.List;
 
 
 class Entity extends Point implements Cloneable{
-	private int id;
-	private double vx;
-	private double vy;
-	private int state;
-	private double friction;
-	private int radius;
-	private int type; //0 for wizards, 1 for snaffles
-	private double mass;
+	protected int id;
+	protected double vx;
+	protected double vy;
+	protected int state;
+	protected double friction;
+	protected int radius;
+	protected int type; //0 for wizards, 1 for snaffles, 2 for bludger
+	public int getType() {
+		return type;
+	}
+
+	public void setType(int type) {
+		this.type = type;
+	}
+
+	protected double mass;
 	
 	
 	public Entity(double x, double y) {
@@ -70,7 +78,7 @@ class Entity extends Point implements Cloneable{
 		this.vy = vy;
 	}
 	
-	public Entity searchNearestSnaffle(List<Entity> snaffles) {
+	public Entity searchNearestEntity(List<Entity> snaffles) {
 		double minDistance = Integer.MAX_VALUE;
 		Entity nearestEntity = null;
 		
@@ -91,7 +99,7 @@ class Entity extends Point implements Cloneable{
 	 * @param id
 	 * @return
 	 */
-	public Entity searchNearestSnaffleExcept(List<Entity> snaffles, int id) {
+	public Entity searchNearestEntityExcept(List<Entity> snaffles, int id) {
 		double minDistance = Integer.MAX_VALUE;
 		Entity nearestEntity = null;
 		
@@ -496,10 +504,14 @@ class Entity extends Point implements Cloneable{
 	    this.y += this.vy * t;
 	}
 	
-
+	public void print() {
+		System.err.println(this.id + " POSITION " + (int) x +" " + (int)y);
+	}
 	
 	public void printAll() {
 		System.err.println("Id: " + id);
+		System.err.println("X: " + x);
+		System.err.println("Y: " + y);
 		System.err.println("Vx: " +vx);
 		System.err.println("Vy: " +vy);
 		System.err.println("State " +state);
