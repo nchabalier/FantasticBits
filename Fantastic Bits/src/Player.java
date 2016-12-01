@@ -34,6 +34,7 @@ class Player {
             List<Entity> wizards = new ArrayList<Entity>();
             List<Entity> opponentWizards = new ArrayList<Entity>();
             List<Entity> snaffles = new ArrayList<Entity>();
+            List<Entity> bludgers = new ArrayList<Entity>();
             List<Entity> allwizards = new ArrayList<Entity>();
             
             int entities = in.nextInt(); // number of entities still in game
@@ -64,6 +65,8 @@ class Player {
 					snaffles.add(newEntity);
 					break;
 				case "BLUDGER":
+	                newEntity = new Entity(entityId,x,y,vx,vy,state, 0.9, 200, 2, 8);
+	                bludgers.add(newEntity);
 					break;
 				default:
 					break;
@@ -72,107 +75,149 @@ class Player {
             }
             
             
-            //----------------------------------------------------
-            //------------Simulate collisions---------------------
-            allwizards.addAll(wizards);
-            allwizards.addAll(opponentWizards);
-            System.err.println("------------------BEFORE-----------------");
-            printList(allwizards);
-            play(allwizards, movements);
-            System.err.println("------------------AFTER-----------------");
-            printList(allwizards);
+
             
-            //print movements
-            for(int i=0; i<4; i++) {
-            	if(movements[i]!=null) {
-            		System.err.println("Movement " + i);
-            		movements[i].print();
-            	}
-            }
             
             //Reset movements
             for(int i=0; i<4; i++) {
             	movements[i] = null;
             }
             
+            for(Entity wizard : wizards) {
+                System.err.println("Vx " + wizard.getVx());
+                System.err.println("Vy " + wizard.getVy());
+            }
+            
+
+            if(magic<3) {
+	            moveTo(new Entity(1333, 512), 150);
+	            movements[0]= new Movement(wizards.get(0),new Entity(1333, 512), 150);
+	            moveTo(new Entity(1000, 7000), 150);
+	            movements[1]= new Movement(wizards.get(1),new Entity(1000, 7000), 150);
+            } else {
+            	 movements[0]=null;
+            	 movements[1]=null;
+            	 actio(snaffles.get(0));
+            	 actio(snaffles.get(0));
+            }
+            magic++;
+            
+            //Test of bludger movements
+            if(magic == 7) {
+            	Entity bludger = bludgers.get(0);
+            	Entity wizard = wizards.get(0);
+            	
+            	Movement movement = new Movement(bludger,wizard, 1000);
+            	
+            	bludger.addMovement(movement);
+            	
+            	System.err.println("ADD MOVEMENT TO BLUDGER");
+
+            }
+            
+            
+            //----------------------------------------------------
+            //------------Simulate collisions---------------------
+            allwizards.addAll(wizards);
+            allwizards.addAll(opponentWizards);
+            allwizards.addAll(bludgers);
+            /*List<Entity> cloneListWizards = null;
+            try {
+            	cloneListWizards = cloneList(allwizards);
+			} catch (CloneNotSupportedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}*/
+            System.err.println("------------------BEFORE-----------------");
+            //printList(cloneListWizards);
+            play(allwizards, movements);
+            System.err.println("------------------AFTER-----------------");
+            printList(allwizards);
+            
             //---------------------------------------------------
             
 
             
-            int chasestSnaffleId = -1;
-            
-            
-            Entity[] snafflesToCatch = findNearestSnaffles(wizards, snaffles);
-            
-            for(Entity wizard : wizards) {
-            	
-            	
-                if(wizard.getState() == 0) {
-                    Entity nearestSnaffle = snafflesToCatch[wizard.getId()%2];
-                    
-                    Point wizardNextPosition = wizard.computeNextPositionInNbTour(1);
-                    Point snaffleNextPosition = nearestSnaffle.computeNextPositionInNbTour(1);
-                    
-                    List<Entity> snafflesGoingToGoal = searchSnafflesGoingToGoal(snaffles, topGoalPoints[1-myTeamId], bottomGoalPoints[1-myTeamId]);
-                    boolean spellLaunched = false;
-                    
-                    if(snafflesGoingToGoal.size()>0 && magic>=10) {
-                    	Entity snaffleToStop = snafflesGoingToGoal.get(0);
-                    	petrifcus(snaffleToStop);
-                    	snaffleToStop.stop();
-                    	spellLaunched = true;
-                    }
-                    
-
-                    
-                    if(magic >= 20 && !spellLaunched) {
-                        /*if(wizard.isUsefulToAccio(nearestSnaffle, goals[myTeamId])){
-                        	actio(nearestSnaffle);
-                        	magic-=20;
-                        	spellLaunched = true;
-                        } else*/ if(lineLineIntersect(wizardNextPosition, snaffleNextPosition, topGoalPoints[myTeamId], bottomGoalPoints[myTeamId] )){
-                        	
-                        	boolean ennemyInTrajectory = false;
-                        	
-                        	for(Entity opponentWizard : opponentWizards) {
-                        		Point opponentNextPosition = opponentWizard.computeNextPositionInNbTour(1);
-                        		if(lineCircleIntersect(wizardNextPosition, snaffleNextPosition, opponentNextPosition , 400)) {
-                        			ennemyInTrajectory = true;
-                        		}
-                        	}
-                        	if(!ennemyInTrajectory) {
-    	                    	flipendo(nearestSnaffle);
-    	                    	
-    	                    	System.err.println("Wizard next pos:");
-    	                    	wizardNextPosition.print();
-    	                    	System.err.println("Snaffle next pos:");
-    	                    	snaffleNextPosition.print();
-    	                    	
-    	                    	
-    	                    	magic-=20;
-    	                    	spellLaunched = true;
-                        	}
-                        }
-                    }
-                    
-                    if(!spellLaunched) {
-                        moveTo(nearestSnaffle, 150);
-                        movements[wizard.getId()]= new Movement(wizard,(Point) nearestSnaffle, 150);
-                    }
-                    
-                    if(snaffles.size()>1) {
-                    	chasestSnaffleId = nearestSnaffle.getId();
-                    }
-                } else {
-                    throwTo(goals[myTeamId], 500);
-                }
-                
-
-                
-            }
-            magic++;
+//            int chasestSnaffleId = -1;
+//            
+//            
+//            Entity[] snafflesToCatch = findNearestSnaffles(wizards, snaffles);
+//            
+//            for(Entity wizard : wizards) {
+//            	
+//            	
+//                if(wizard.getState() == 0) {
+//                    Entity nearestSnaffle = snafflesToCatch[wizard.getId()%2];
+//                    
+//                    Point wizardNextPosition = wizard.computeNextPositionInNbTour(1);
+//                    Point snaffleNextPosition = nearestSnaffle.computeNextPositionInNbTour(1);
+//                    
+//                    List<Entity> snafflesGoingToGoal = searchSnafflesGoingToGoal(snaffles, topGoalPoints[1-myTeamId], bottomGoalPoints[1-myTeamId]);
+//                    boolean spellLaunched = false;
+//                    
+//                    if(snafflesGoingToGoal.size()>0 && magic>=10) {
+//                    	Entity snaffleToStop = snafflesGoingToGoal.get(0);
+//                    	petrifcus(snaffleToStop);
+//                    	snaffleToStop.stop();
+//                    	spellLaunched = true;
+//                    }
+//                    
+//
+//                    
+//                    if(magic >= 20 && !spellLaunched) {
+//                        /*if(wizard.isUsefulToAccio(nearestSnaffle, goals[myTeamId])){
+//                        	actio(nearestSnaffle);
+//                        	magic-=20;
+//                        	spellLaunched = true;
+//                        } else*/ if(lineLineIntersect(wizardNextPosition, snaffleNextPosition, topGoalPoints[myTeamId], bottomGoalPoints[myTeamId] )){
+//                        	
+//                        	boolean ennemyInTrajectory = false;
+//                        	
+//                        	for(Entity opponentWizard : opponentWizards) {
+//                        		Point opponentNextPosition = opponentWizard.computeNextPositionInNbTour(1);
+//                        		if(lineCircleIntersect(wizardNextPosition, snaffleNextPosition, opponentNextPosition , 400)) {
+//                        			ennemyInTrajectory = true;
+//                        		}
+//                        	}
+//                        	if(!ennemyInTrajectory) {
+//    	                    	flipendo(nearestSnaffle);
+//    	                    	
+//    	                    	System.err.println("Wizard next pos:");
+//    	                    	wizardNextPosition.print();
+//    	                    	System.err.println("Snaffle next pos:");
+//    	                    	snaffleNextPosition.print();
+//    	                    	
+//    	                    	
+//    	                    	magic-=20;
+//    	                    	spellLaunched = true;
+//                        	}
+//                        }
+//                    }
+//                    
+//                    if(!spellLaunched) {
+//                        moveTo(nearestSnaffle, 150);
+//                        movements[wizard.getId()]= new Movement(wizard,(Point) nearestSnaffle, 150);
+//                    }
+//                    
+//                    if(snaffles.size()>1) {
+//                    	chasestSnaffleId = nearestSnaffle.getId();
+//                    }
+//                } else {
+//                    throwTo(goals[myTeamId], 500);
+//                }
+//                
+//
+//                
+//            }
+//            magic++;
             
         }
+    }
+    
+    public static List<Entity> cloneList(List<Entity> list) throws CloneNotSupportedException {
+        List<Entity> clone = new ArrayList<Entity>(list.size());
+        for (Entity item : list) clone.add((Entity) item.clone());
+        return clone;
     }
     
     public static void printList(List<Entity> entities) {
@@ -181,20 +226,20 @@ class Player {
     	}
     }
     
-    public static void moveTo(Entity entity, int power) {
+    public static void moveTo(Point point, int power) {
         System.out.print("MOVE ");
-        System.out.print(entity.getX());
+        System.out.print((int)point.getX());
         System.out.print(" ");
-        System.out.print(entity.getY());
+        System.out.print((int)point.getY());
         System.out.print(" ");
         System.out.println(power);
     }
     
     public static void throwTo(Point point, int power) {
         System.out.print("THROW ");
-        System.out.print(point.getX());
+        System.out.print((int)point.getX());
         System.out.print(" ");
-        System.out.print(point.getY());
+        System.out.print((int)point.getY());
         System.out.print(" ");
         System.out.println(power);
     }
@@ -223,7 +268,7 @@ class Player {
 	    	//snaffles1[1] = wizards.get(1).searchNearestSnaffleExcept(snaffles, snaffles1[0].getId());
 	    	snaffles1[1] = wizards.get(1).searchNearestSnaffle(snaffles);
 	    	
-	    	int totalDistanceSquare1 = wizards.get(0).computeDistanceSquare(snaffles1[0]);
+	    	double totalDistanceSquare1 = wizards.get(0).computeDistanceSquare(snaffles1[0]);
 	    	totalDistanceSquare1+= wizards.get(1).computeDistanceSquare(snaffles1[1]);
 	    	
 	    	Entity[] snaffles2 = new Entity[2];
@@ -232,7 +277,7 @@ class Player {
 	    	//snaffles2[0] = wizards.get(0).searchNearestSnaffleExcept(snaffles, snaffles2[1].getId());
 	    	snaffles2[0] = wizards.get(0).searchNearestSnaffle(snaffles);
 	    	
-	    	int totalDistanceSquare2 = wizards.get(0).computeDistanceSquare(snaffles2[0]);
+	    	double totalDistanceSquare2 = wizards.get(0).computeDistanceSquare(snaffles2[0]);
 	    	totalDistanceSquare2+= wizards.get(1).computeDistanceSquare(snaffles2[1]);
 	    	
 	    	if(totalDistanceSquare1 > totalDistanceSquare2) {
@@ -279,34 +324,34 @@ class Player {
     
     public static boolean lineCircleIntersect(Point A, Point B, Point C, int radius) {
     	
-    	float Ax = A.getX();
-    	float Ay = A.getY();
-    	float Bx = B.getX();
-    	float By = B.getY();
-    	float Cx = C.getX();
-    	float Cy = C.getY();
+    	double Ax = A.getX();
+    	double Ay = A.getY();
+    	double Bx = B.getX();
+    	double By = B.getY();
+    	double Cx = C.getX();
+    	double Cy = C.getY();
 
     	
     	// compute the euclidean distance between A and B
-    	float LAB = (float) Math.sqrt( (Bx-Ax)*(Bx-Ax)+(By-Ay)*(By-Ay) );
+    	double LAB = (double) Math.sqrt( (Bx-Ax)*(Bx-Ax)+(By-Ay)*(By-Ay) );
 
     	// compute the direction vector D from A to B
-    	float Dx = (Bx-Ax)/LAB;
-    	float Dy = (By-Ay)/LAB;
+    	double Dx = (Bx-Ax)/LAB;
+    	double Dy = (By-Ay)/LAB;
 
     	// Now the line equation is x = Dx*t + Ax, y = Dy*t + Ay with 0 <= t <= 1.
 
     	// compute the value t of the closest point to the circle center (Cx, Cy)
-    	float t = Dx*(Cx-Ax) + Dy*(Cy-Ay); 
+    	double t = Dx*(Cx-Ax) + Dy*(Cy-Ay); 
 
     	// This is the projection of C on the line from A to B.
 
     	// compute the coordinates of the point E on line and closest to C
-    	float Ex = t*Dx+Ax;
-    	float Ey = t*Dy+Ay;
+    	double Ex = t*Dx+Ax;
+    	double Ey = t*Dy+Ay;
 
     	// compute the euclidean distance from E to C
-    	float LEC = (float) Math.sqrt( (Ex-Cx)*(Ex-Cx)+(Ey-Cy)*(Ey-Cy) );
+    	double LEC = (float) Math.sqrt( (Ex-Cx)*(Ex-Cx)+(Ey-Cy)*(Ey-Cy) );
 
     	// test if the line intersects the circle
     	if( LEC < radius )
@@ -350,11 +395,11 @@ class Player {
 
 			@Override
 			public int compare(Entity o1, Entity o2) {
-				int velocity1 = Math.abs(o1.getVx());
-				int velocity2 =Math.abs( o2.getVx());
+				double velocity1 = Math.abs(o1.getVx());
+				double velocity2 = Math.abs( o2.getVx());
 				
 				
-				return Integer.compare(velocity2, velocity1);
+				return Double.compare(velocity2, velocity1);
 			}
         });
     	
@@ -375,6 +420,9 @@ class Player {
         double t = 0.0;
 
         while (t < 1.0) {
+        	
+        	System.err.println("****************** " + t + "**************");
+        	
             Collision firstCollision = null;
 
             // We look for all the collisions that are going to occur during the turn
@@ -382,12 +430,11 @@ class Player {
                 // Collision with another pod?
                 for (int j = i + 1; j < wizards.size(); ++j) {
                     Collision col = wizards.get(i).collision(wizards.get(j));
-
+                    System.err.println();
                     // If the collision occurs earlier than the one we currently have we keep it
                     if (col != null && col.t + t < 1.0 && (firstCollision == null || col.t < firstCollision.t)) {
                         firstCollision = col;
                         
-                        System.err.println("COLLISION between " + wizards.get(i).getId() + " and " + wizards.get(j).getId());
                     }
                 }
             }
@@ -410,6 +457,7 @@ class Player {
 
                 // Play out the collision
                 firstCollision.entityA.bounce(firstCollision.entityB);
+                firstCollision.print();
 
                 t += firstCollision.t;
             }

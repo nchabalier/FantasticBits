@@ -1,21 +1,15 @@
 
 class Movement {
-	public Entity entity;
-	public Point pointB;
-	public int power;
+	public double vx;
+	public double vy;
 	
-	public Movement(Entity entity, Point pointB, int power) {
-		super();
-		this.entity = entity;
-		this.pointB = pointB;
-		this.power = power;
+	public Movement(Entity entity, Point target, int power) {
+		double dx = (target.x - entity.x);
+		double dy = (target.y - entity.y);
+		double norm = Math.sqrt(dx*dx+dy*dy);
+		this.vx = power * dx / norm;
+		this.vy = power * dy / norm;
 	}
 	
-	public void print() {
-		System.err.println("Entity");
-		entity.print();
-		System.err.println("Target");
-		pointB.print();
-		System.err.println("Power " + power);
-	}
+
 }

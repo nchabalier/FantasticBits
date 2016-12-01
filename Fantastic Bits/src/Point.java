@@ -1,29 +1,29 @@
 
 class Point {
-	protected int x;
-	protected int y;
+	protected double x;
+	protected double y;
 	
-	public Point(int x, int y) {
+	public Point(double x, double y) {
 		super();
 		this.x = x;
 		this.y = y;
 	}
 	
-	public int getX() {
+	public double getX() {
 		return x;
 	}
 	public void setX(int x) {
 		this.x = x;
 	}
-	public int getY() {
+	public double getY() {
 		return y;
 	}
 	public void setY(int y) {
 		this.y = y;
 	}
 
-	public int distance2(Point point) {
-		return (x-point.x)*(this.x-point.x) + (this.y-point.y)*(this.y-point.y);
+	public double distance2(Point point) {
+		return (this.x-point.x)*(this.x-point.x) + (this.y-point.y)*(this.y-point.y);
 	}
 	
 	public double distance(Point point) {
@@ -58,13 +58,13 @@ class Point {
 	
 	
 	Point closest(Point a, Point b) {
-	    int da = b.y - a.y;
-	    int db = a.x - b.x;
-	    int c1 = da*a.x + db*a.y;
-	    int c2 = -db*this.x + da*this.y;
-	    int det = da*da + db*db;
-	    int cx = 0;
-	    int cy = 0;
+	    double da = b.y - a.y;
+	    double db = a.x - b.x;
+	    double c1 = da*a.x + db*a.y;
+	    double c2 = -db*this.x + da*this.y;
+	    double det = da*da + db*db;
+	    double cx = 0;
+	    double cy = 0;
 
 	    if (det != 0) {
 	        cx = (da*c1 - db*c2) / det;

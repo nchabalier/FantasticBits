@@ -1,9 +1,10 @@
 import java.util.List;
 
-class Entity extends Point{
+
+class Entity extends Point implements Cloneable{
 	private int id;
-	private int vx;
-	private int vy;
+	private double vx;
+	private double vy;
 	private int state;
 	private double friction;
 	private int radius;
@@ -11,19 +12,23 @@ class Entity extends Point{
 	private double mass;
 	
 	
-	public Entity(int id, int x, int y, int vx, int vy) {
+	public Entity(double x, double y) {
+		super(x,y);
+	}
+	
+	public Entity(int id, double x, double y, double vx, double vy) {
 		super(x,y);
 		this.id = id;
 		this.vx = vx;
 		this.vy = vy;
 	}
 	
-	public Entity(int id, int x, int y, int vx, int vy, int state) {
+	public Entity(int id, double x, double y, double vx, double vy, int state) {
 		this(id, x, y, vx, vy);
 		this.state = state;
 	}
 	
-	public Entity(int id, int x, int y, int vx, int vy, int state, double friction, int radius, int type, double mass) {
+	public Entity(int id, double x, double y, double vx, double vy, int state, double friction, int radius, int type, double mass) {
 		this(id, x, y, vx, vy);
 		this.state = state;
 		this.friction = friction;
@@ -49,7 +54,7 @@ class Entity extends Point{
 		this.id = id;
 	}
 
-	public int getVx() {
+	public double getVx() {
 		return vx;
 	}
 
@@ -57,7 +62,7 @@ class Entity extends Point{
 		this.vx = vx;
 	}
 
-	public int getVy() {
+	public double getVy() {
 		return vy;
 	}
 
@@ -66,11 +71,11 @@ class Entity extends Point{
 	}
 	
 	public Entity searchNearestSnaffle(List<Entity> snaffles) {
-		int minDistance = Integer.MAX_VALUE;
+		double minDistance = Integer.MAX_VALUE;
 		Entity nearestEntity = null;
 		
 		for(Entity snaffle : snaffles) {
-			int newDistance = computeDistanceSquare(snaffle);
+			double newDistance = computeDistanceSquare(snaffle);
 			if(newDistance < minDistance) {
 				minDistance = newDistance;
 				nearestEntity = snaffle;
@@ -87,11 +92,11 @@ class Entity extends Point{
 	 * @return
 	 */
 	public Entity searchNearestSnaffleExcept(List<Entity> snaffles, int id) {
-		int minDistance = Integer.MAX_VALUE;
+		double minDistance = Integer.MAX_VALUE;
 		Entity nearestEntity = null;
 		
 		for(Entity snaffle : snaffles) {
-			int newDistance = computeDistanceSquare(snaffle);
+			double newDistance = computeDistanceSquare(snaffle);
 			if(snaffle.getId()!=id && newDistance < minDistance) {
 				minDistance = newDistance;
 				nearestEntity = snaffle;
@@ -101,7 +106,7 @@ class Entity extends Point{
 		return nearestEntity;
 	}
 	
-	public int computeDistanceSquare(Entity entity) {
+	public double computeDistanceSquare(Entity entity) {
 		return (this.getX()-entity.getX())*(this.getX()-entity.getX()) + (this.getY()-entity.getY())*(this.getY()-entity.getY());
 	}
 	
@@ -116,10 +121,10 @@ class Entity extends Point{
 	
 	
 	public Point computeNextPositionInNbTour(int nbTour) {
-		int tempX = this.getX();
-		int tempY = this.getY();
-		int tempVx = this.vx;
-		int tempVy = this.vy;
+		double tempX = this.getX();
+		double tempY = this.getY();
+		double tempVx = this.vx;
+		double tempVy = this.vy;
 		
 		for(int i=0; i<nbTour; i++) {
 			
@@ -161,8 +166,8 @@ class Entity extends Point{
 				}
 			}
 			
-			tempVx = (int) (tempVx * friction);
-			tempVy = (int) (tempVy * friction);
+			tempVx = tempVx * friction;
+			tempVy = tempVy * friction;
 			
 		}
 		
@@ -172,7 +177,7 @@ class Entity extends Point{
 		return newPosition;
 	}
 	
-	public boolean isInGoal(int py) {
+	public boolean isInGoal(double py) {
 		if(py>1900 && py<5600) {
 			return true;
 		}
@@ -188,16 +193,20 @@ class Entity extends Point{
 	public Collision collision(Entity entity) {
 		
 		// Square of the distance
-	    double dist = this.distance2(entity);
+		double dist = Math.floor(this.distance2(entity));
 
 	    // Sum of the radii squared
 	    double sr = (this.radius + entity.radius)*(this.radius + entity.radius);
 
 	    // We take everything squared to avoid calling sqrt uselessly. It is better for performances
 
-	    if (dist < sr) {
+	    if (Math.round(dist) + 10 < sr) {
+	    	System.err.println("ID " + id);
+	    	System.err.println("Dist " + dist);
+	    	System.err.println("Sr " + sr);
+	    	
 	        // Objects are already touching each other. We have an immediate collision.
-	        return new Collision(this, entity, 0.0f);
+	        return new Collision(this, entity, 0.0);
 	    }
 
 	    // Optimisation. Objects with the same speed will never collide
@@ -206,11 +215,11 @@ class Entity extends Point{
 	    }
 
 	    // We place ourselves in the reference frame of u. u is therefore stationary and is at (0,0)
-	    int x = this.x - entity.x;
-	    int y = this.y - entity.y;
+	    double x = this.x - entity.x;
+	    double y = this.y - entity.y;
 	    Point myp = new Point(x, y);
-	    int vx = this.vx - entity.vx;
-	    int vy = this.vy - entity.vy;
+	    double vx = this.vx - entity.vx;
+	    double vy = this.vy - entity.vy;
 	    Point up = new Point(0, 0);
 
 	    // We look for the closest point to u (which is in (0,0)) on the line described by our speed vector
@@ -229,8 +238,8 @@ class Entity extends Point{
 
 	        // We move along the line to find the point of impact
 	        double backdist = Math.sqrt(sr - pdist);
-	        p.x = (int) (p.x - backdist * (vx / length));
-	        p.y = (int) (p.y - backdist * (vy / length));
+	        p.x = p.x - backdist * (vx / length);
+	        p.y = p.y - backdist * (vy / length);
 
 	        // If the point is now further away it means we are not going the right way, therefore the collision won't happen
 	        if (myp.distance2(p) > mypdist) {
@@ -261,41 +270,225 @@ class Entity extends Point{
         //float m2 = entity.shield ? 10 : 1;
         //float mcoeff = (m1 + m2) / (m1 * m2);
 
-		double nx = this.x - entity.x;
-		double ny = this.y - entity.y;
+//		double nx = this.x - entity.x;
+//		double ny = this.y - entity.y;
+//
+//        // Square of the distance between the 2 pods. This value could be hardcoded because it is always 800²
+//		double nxnysquare = nx*nx + ny*ny;
+//
+//		double dvx = this.vx - entity.vx;
+//		double dvy = this.vy - entity.vy;
+//
+//        // fx and fy are the components of the impact vector. product is just there for optimisation purposes
+//		double product = nx*dvx + ny*dvy;
+//		double fx = (nx * product) / Math.sqrt(nxnysquare);
+//		double fy = (ny * product) / Math.sqrt(nxnysquare);
+//
+//        // We apply the impact vector once
+//        this.vx -= fx;
+//        this.vy -= fy;
+//        entity.vx += fx;
+//        entity.vy += fy;
 
-        // Square of the distance between the 2 pods. This value could be hardcoded because it is always 800²
-		double nxnysquare = nx*nx + ny*ny;
-
-		double dvx = this.vx - entity.vx;
-		double dvy = this.vy - entity.vy;
-
-        // fx and fy are the components of the impact vector. product is just there for optimisation purposes
-		double product = nx*dvx + ny*dvy;
-		double fx = (nx * product) / (nxnysquare);
-		double fy = (ny * product) / (nxnysquare);
-
-        // We apply the impact vector once
-        this.vx -= fx;
-        this.vy -= fy;
-        entity.vx += fx;
-        entity.vy += fy;
-
-        // If the norm of the impact vector is less than 120, we normalize it to 120
-        double impulse = Math.sqrt(fx*fx + fy*fy);
-        if (impulse < 120.0) {
-            fx = fx * 120.0 / impulse;
-            fy = fy * 120.0 / impulse;
-        }
+//        // If the norm of the impact vector is less than 120, we normalize it to 120
+//        double impulse = Math.sqrt(fx*fx + fy*fy);
+//        if (impulse < 120.0) {
+//            fx = fx * 120.0 / impulse;
+//            fy = fy * 120.0 / impulse;
+//        }
 
         // We apply the impact vector a second time
-        this.vx -= fx;
+        /*this.vx -= fx;
         this.vy -= fy;
         entity.vx += fx;
-        entity.vy += fy;
+        entity.vy += fy;*/
 
         // This is one of the rare places where a Vector class would have made the code more readable.
-        // But this place is called so often that I can't pay a performance price to make it more readable.
+        // But this place is called so often that I can't pay a performance price to make it more readable*/
+		
+		/*System.err.println("Velocity before");
+		System.err.println("Velocity " + this.id + " : " + this.vx +" " + this.vy);
+		System.err.println("Velocity " + entity.id + " : " + entity.vx +" " + entity.vy);
+		
+		double dx1 = entity.x - this.x;
+		double dy1 = entity.y - this.y;
+		
+		double norm = Math.sqrt(dx1*dx1 + dy1*dy1);
+		
+		dx1/=norm;
+		dy1/=norm;
+		
+		double dx2 = -dy1;
+		double dy2 = dx1;
+		
+		double tempVx1 =
+		
+		
+		
+		double dvx = entity.vx - this.vx;
+		double dvy = entity.vy - this.vy;
+		
+		double newVx1 = ((double)this.vx*(this.mass-entity.mass)+2*entity.mass*(double)entity.vx)/(this.mass+entity.mass);
+		double newVx2 = ((double)entity.vx*(entity.mass-this.mass)+2*this.mass*(double)this.vx)/(this.mass+entity.mass);
+		
+		double newVy1 = ((double)this.vy*(this.mass-entity.mass)+2*entity.mass*(double)entity.vy)/(this.mass+entity.mass);
+		double newVy2 = ((double)entity.vy*(entity.mass-this.mass)+2*this.mass*(double)this.vy)/(this.mass+entity.mass);
+		
+		this.vx = newVx1;
+		this.vy = newVy1;
+		entity.vx =newVx2;
+		entity.vy = newVy2;*/
+		
+		/*// get the mtd
+	    double deltaX = this.x - entity.x; //(position.subtract(ball.position));
+	    double deltaY = this.y - entity.y;
+	    double d = Math.sqrt(deltaX*deltaX + deltaY*deltaY);
+	    
+	    // minimum translation distance to push balls apart after intersecting
+	    //Vector2d mtd = delta.multiply(((getRadius() + ball.getRadius())-d)/d);
+	    double mtdX = deltaX * (this.radius+entity.radius-d)/d;
+	    double mtdY = deltaY * (this.radius+entity.radius-d)/d;
+	    double mtdd = Math.sqrt(mtdX*mtdX + mtdY*mtdY);
+
+	    // resolve intersection --
+	    // inverse mass quantities
+	    double im1 = 1 / this.mass; 
+	    double im2 = 1 / entity.mass;
+
+	    // push-pull them apart based off their mass
+	    //position = position.add(mtd.multiply(im1 / (im1 + im2)));
+	    //ball.position = ball.position.subtract(mtd.multiply(im2 / (im1 + im2)));
+
+	    // impact speed
+	    //Vector2d v = (this.velocity.subtract(ball.velocity));
+	    double dvx = this.vx - entity.vx;
+	    double dvy = this.vy - entity.vy;
+	    
+	    //float vn = v.dot(mtd.normalize());
+	    mtdX = mtdX / mtdd;
+	    mtdY = mtdY / mtdd;
+	    double vn = dvx*mtdX + dvy*mtdY;
+	    
+	    // sphere intersecting but moving away from each other already
+	    if (vn > 0.0f) return;
+
+	    // collision impulse
+	    float i = (-(1.0f + Constants.restitution) * vn) / (im1 + im2);
+	    Vector2d impulse = mtd.multiply(i);
+
+	    // change in momentum
+	    this.velocity = this.velocity.add(impulse.multiply(im1));
+	    ball.velocity = ball.velocity.subtract(impulse.multiply(im2));*/
+		
+		
+		/*System.err.println("Velocity Before " + this.id + " : " + this.vx +" " + this.vy);
+		System.err.println("Velocity Before " + entity.id + " : " + entity.vx +" " + entity.vy);
+		
+		
+		System.err.println("Velocity After" + this.id + " : " + this.vx +" " + this.vy);
+		System.err.println("Velocity After" + entity.id + " : " + entity.vx +" " + entity.vy);
+		
+		double newxSpeed1 = (this.vx * (this.mass - entity.mass) + (2 * entity.mass * entity.vx)) / (entity.mass+ this.mass);
+        double newxSpeed2 = (entity.vx * (entity.mass - this.mass) + (2 * this.mass * this.vx)) / (entity.mass+ this.mass);
+        double newySpeed1 = (this.vy * (this.mass - entity.mass) + (2 * entity.mass * entity.vy)) / (entity.mass+ this.mass);
+        double newySpeed2 = (entity.vy * (entity.mass - this.mass) + (2 * this.mass * this.vy)) / (entity.mass+ this.mass);
+        
+		System.err.println("TEST Velocity After" + this.id + " : " + newxSpeed1 +" " + newySpeed1);
+		System.err.println("TEST Velocity After" + entity.id + " : " + newxSpeed2 +" " + newySpeed2);
+		
+		newxSpeed1 = (this.vx * (entity.mass - this.mass) + (2 * this.mass * entity.vx)) / (entity.mass+ this.mass);
+        newxSpeed2 = (entity.vx * (this.mass - entity.mass) + (2 * entity.mass * this.vx)) / (entity.mass+ this.mass);
+        newySpeed1 = (this.vy * (entity.mass - this.mass) + (2 * this.mass * entity.vy)) / (entity.mass+ this.mass);
+        newySpeed2 = (entity.vy * (this.mass - entity.mass) + (2 * entity.mass * this.vy)) / (entity.mass+ this.mass);
+        
+		System.err.println("TEST Velocity After" + this.id + " : " + newxSpeed1 +" " + newySpeed1);
+		System.err.println("TEST Velocity After" + entity.id + " : " + newxSpeed2 +" " + newySpeed2);*/
+		
+        double xDist = this.getX() - entity.getX() ;
+        double yDist = this.getY() - entity.getY() ;
+        double distSquared = xDist*xDist + yDist*yDist;
+
+        double xVelocity = entity.getVx() - this.getVx();
+        double yVelocity = entity.getVy() - this.getVy();
+        double dotProduct = xDist*xVelocity + yDist*yVelocity;
+        //Neat vector maths, used for checking if the objects moves towards one another.
+        if(dotProduct > 0){
+            double collisionScale = dotProduct / distSquared;
+            double xCollision = xDist * collisionScale;
+            double yCollision = yDist * collisionScale;
+            //The Collision vector is the speed difference projected on the Dist vector,
+            //thus it is the component of the speed difference needed for the collision.
+            double combinedMass = this.mass + entity.mass;
+            double collisionWeightA = 2 * entity.mass / combinedMass;
+            double collisionWeightB = 2 * this.mass / combinedMass;
+            this.vx = this.vx + collisionWeightA * xCollision;
+            this.vy = this.vy + collisionWeightA * yCollision;
+            entity.vx = entity.vx - collisionWeightB * xCollision;
+            entity.vy = entity.vy - collisionWeightB * yCollision;
+    		System.err.println("TEST Velocity After" + this.id + " : " + this.vx +" " + this.vy);
+    		System.err.println("TEST Velocity After" + entity.id + " : " + entity.vx +" " + entity.vy);
+        }
+
+		
+		
+	    /*double collisionX = this.x - entity.x;
+	    double collisionY = this.y - entity.y;
+	    double distance = Math.sqrt(collisionX*collisionX+collisionY*collisionY);
+	    
+
+	    System.err.println("distance: " + distance);
+	    
+	    // Get the components of the velocity vectors which are parallel to the collision.
+	    // The perpendicular component remains the same for both fish
+	    collisionX = collisionX / distance;
+	    collisionY = collisionY / distance;
+	    
+	    double secondX = -collisionY;
+	    double secondY = collisionX;
+	    
+	    double aci = this.vx*collisionX + this.vy*collisionY;
+	    double bci = entity.vx*collisionX + entity.vy*collisionY;
+	    
+	    double aci2 = this.vx*secondX + this.vy*secondY;
+	    double bci2 = entity.vx*secondX + entity.vy*secondY;
+	    
+	    System.err.println("aci: " + aci + " bci: " + bci);
+	    System.err.println("aci2: " + aci2 + " bci2: " + bci2);
+
+	    // Solve for the new velocities using the 1-dimensional elastic collision equations.
+	    // Turns out it's really simple when the masses are the same.
+	    double acf = (aci*(this.mass - entity.mass) + (2 * entity.mass * bci)) / (this.mass + entity.mass);
+	    double bcf = (bci*(entity.mass - this.mass) + (2 * this.mass * aci)) / (this.mass + entity.mass);
+
+	    // Replace the collision velocity components with the new ones
+	    this.vx = acf * collisionX;
+	    this.vy = acf * collisionY;
+	    entity.vx = bcf * collisionX;
+	    entity.vy = bcf * collisionY;
+	    
+	    //double acf2 = (bci2*(this.mass - entity.mass) + (2 * entity.mass * aci2)) / (this.mass + entity.mass);
+	    //double bcf2 = (aci2*(entity.mass - this.mass) + (2 * this.mass * bci2)) / (this.mass + entity.mass);
+	    
+	    double acf2 = aci2;
+	    double bcf2 = bci2;
+	    
+	    
+	    
+		System.err.println("Velocity After" + this.id + " : " + this.vx +" " + this.vy);
+		System.err.println("Velocity After" + entity.id + " : " + entity.vx +" " + entity.vy);
+	    
+	    this.vx += acf2 * secondX;
+	    this.vy += acf2 * secondY;
+	    entity.vx += bcf2 * secondX;
+	    entity.vy += bcf2 * secondY;*/
+		
+		
+
+		
+
+
+		
+		
     }
 	
 	public void move(double t) {
@@ -315,20 +508,14 @@ class Entity extends Point{
 	}
 
 	public void addMovement(Movement movement) {
-		double dirX = movement.pointB.x - movement.entity.x;
-		double dirY = movement.pointB.y - movement.entity.y;
-		double norm = Math.sqrt(dirX*dirX + dirY*dirY);
-		dirX/=norm;
-		dirY/=norm;
 		
-		double coef = (double)movement.power / (double)this.mass;
-		
-		this.vx += dirX*coef;
-		this.vy += dirY*coef;
-		
-		System.err.println("********** " + vx);
-		System.err.println("********** " + vy);
-		
+		this.vx += movement.vx/this.mass;
+		this.vy += movement.vy/this.mass;
 		
 	}
+	
+	protected Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
+	
 }
