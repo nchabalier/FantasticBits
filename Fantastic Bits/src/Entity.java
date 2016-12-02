@@ -222,7 +222,7 @@ class Entity extends Point implements Cloneable{
 		double radius1 = this.radius;
 		double radius2 = entity.radius;
 		
-		//This block is for capture a snaffle by a wizard only if snaffle center is inside wizard
+		//This block is to capture a snaffle by a wizard only if snaffle center is inside wizard
 		//If there is a wizard (0) and a snaffle (1)
 		if(( this.type == 1 &&  entity.type == 0 )||( this.type == 0 &&  entity.type == 1 )) {
 			if(this.type == 1) {
@@ -239,11 +239,11 @@ class Entity extends Point implements Cloneable{
 	    double sr = (radius1 + radius2)*(radius1 + radius2);
 
 	    // We take everything squared to avoid calling sqrt uselessly. It is better for performances
-
+	    // +10 to avoid round error
 	    if (Math.round(dist) + 10 < sr) {
-	    	System.err.println("ID " + id);
-	    	System.err.println("Dist " + dist);
-	    	System.err.println("Sr " + sr);
+	    	//System.err.println("ID " + id);
+	    	//System.err.println("Dist " + dist);
+	    	//System.err.println("Sr " + sr);
 	    	
 	        // Objects are already touching each other. We have an immediate collision.
 	        return new Collision(this, entity, 0.0);
@@ -292,6 +292,7 @@ class Entity extends Point implements Cloneable{
 	        if (pdist > length) {
 	            return null;
 	        }
+	        
 
 	        // Time needed to reach the impact point
 	        double t = pdist / length;
@@ -410,9 +411,28 @@ class Entity extends Point implements Cloneable{
 	    		double t = distance(p2)/normV;
 	    		
 	    		if(collision == null || t<collision.t ) {
+	    			
+			        //Check if snaffle enter into a goal
+			        if(this.type == 1) {
+			        	System.err.println("WALL COLLISION WITH SNAFFLE " + a.x + " " + a.y);
+			        	//TODO: this is goal without poteau and snaffle radius
+			        	if(a.x<=0 && (a.y>=2200 && a.y<=5600)) {
+			        		//Snaffle snaffle = (Snaffle) this;
+			        		//snaffle.isInGoal = true;
+			        		return null;
+			        	} else {
+			        		if(a.x>=16000 && (a.y>=2200 && a.y<=5600)) {
+				        		//Snaffle snaffle = (Snaffle) this;
+				        		//snaffle.isInGoal = true;
+			        			return null;
+			        		}
+			        	}
+			        }
+	    			
 		    		// Create a wall : a circle with radius=0 and weight ~= Infinity
 		    		Entity wallEntity = new Entity(-1,a.x,a.y,0,0,0,0,0,-1,10000000);
 		    		collision = new Collision(this, wallEntity, t);
+
 	    		}
 			}
 		}

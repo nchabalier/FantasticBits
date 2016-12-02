@@ -38,7 +38,7 @@ class Player {
             //List<Entity> wizards = new ArrayList<Entity>();
             List<Entity> opponentWizards = new ArrayList<Entity>();
             //List<Entity> snaffles = new ArrayList<Entity>();
-            List<Entity> wizardsAndBludgers = new ArrayList<Entity>();
+            List<Entity> allEntities = new ArrayList<Entity>();
             
             
             int entities = in.nextInt(); // number of entities still in game
@@ -75,7 +75,7 @@ class Player {
 	                //newEntity = new Snaffle(entityId,x,y,vx,vy,state, 0.75, 150, 1, 0.5);
 					//snaffles.add(newEntity);
 					
-					
+					//System.err.println("ID OF SNAFFLE " + entityId);
 					Snaffle snaffle = (Snaffle) snafflesMap.get(entityId);
 					if(snaffle==null) {
 						snaffle = new Snaffle(entityId,x,y,vx,vy,state, 0.75, 150, 1, 0.5);
@@ -206,13 +206,24 @@ class Player {
             
             
             //----------------------------------------Predict movement of next turn----------------------------------------------
+            
+          //Throw snaffle for opponent team
+            for(Entity entity : opponentWizards) {
+            	if(entity.getState()==1) {
+            		Snaffle snaffle = (Snaffle) findSnaffleAtPosition(entity, snaffles);
+            		entity.setSnaffleCarried(snaffle);
+	                
+	                //Throw this snaffle
+	                snaffle.throwToPosition(goals[myTeamId], 500);
+            	}
+            }
+            
+           
 
              
-             
-             //----------------------------------------------------
              //------------Simulate collisions---------------------
-             wizardsAndBludgers.addAll(wizards);
-             wizardsAndBludgers.addAll(opponentWizards);
+             allEntities.addAll(wizards);
+             allEntities.addAll(opponentWizards);
              
              
 
@@ -228,7 +239,7 @@ class Player {
          	//Move all bludger
          	for(Entity entity : bludgers.values()) {
          		Bludger bludger = (Bludger) entity;
-         		Entity wizardChased = bludger.searchNearestEntityExcept(wizardsAndBludgers, bludger.getLastEntityId());
+         		Entity wizardChased = bludger.searchNearestEntityExcept(allEntities, bludger.getLastEntityId());
          		Movement movement = new Movement(entity, wizardChased, 1000);
          		bludger.addMovement(movement);
          	}
@@ -240,24 +251,44 @@ class Player {
          	}
          	
          	
-         	wizardsAndBludgers.addAll(bludgers.values());
-         	wizardsAndBludgers.addAll(snaffles);
+         	allEntities.addAll(bludgers.values());
+         	allEntities.addAll(snaffles);
          	
          	//printList(allwizards);
-             play(wizardsAndBludgers);
+             play(allEntities);
+             
              
              //Update position of snaffle catched by wizards
-             for(Entity entity : snaffles) {
-             	Snaffle snaffle = (Snaffle) entity;
-             	snaffle.updatePosition();
+             for (Iterator<Entity> iterator = snaffles.iterator(); iterator.hasNext();) {
+                 Snaffle snaffle = (Snaffle) iterator.next();
+                 
+              	if(snaffle.getX()<=0 ||snaffle.getX()>=16000) {
+             		//TODO: add a goal for me or for opponents
+
+             		System.err.println("GOOOOOOOOOOOAAAAAAAAAAAAAAAAALLLLLLLLLLLLLLLLLLL !!!! " + snaffle.getId());
+
+              		snafflesMap.remove(snaffle.getId());
+              		iterator.remove();
+             	} else {
+                 	snaffle.updatePosition();
+             	}
              }
              
              System.err.println("------------------AFTER-----------------");
-             printList(wizardsAndBludgers);
+             printList(allEntities);
              
              //---------------------------------------------------
             
         }
+    }
+    
+    public static Entity findSnaffleAtPosition(Point point, List<Entity> snaffles) {
+    	for(Entity entity : snaffles) {
+    		if((point.getX() == entity.getX()) && (point.getY() == entity.getY())) {
+    			return entity;
+    		}
+    	}
+    	return null;
     }
     
     public static List<Entity> cloneList(List<Entity> list) throws CloneNotSupportedException {

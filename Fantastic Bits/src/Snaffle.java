@@ -6,8 +6,14 @@ class Snaffle extends Entity{
 	
 	private Entity wizardCarrier = null;
 	private List<Entity> spellers = new ArrayList<Entity>();
-	private List<String> typesOfSpell  = new ArrayList<String>();;
-	private List<Integer> timeRemaining =  new ArrayList<Integer>();;
+	private List<String> typesOfSpell  = new ArrayList<String>();
+	private List<Integer> timeRemaining =  new ArrayList<Integer>();
+	
+	boolean isInGoal = false;
+	
+	public boolean isIntoGoal() {
+		return isInGoal;
+	}
 	
 	public void accio(Entity entity) {
 		spellers.add(entity);
