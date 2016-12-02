@@ -1,0 +1,451 @@
+import java.util.List;
+
+class Entity extends Point implements Cloneable{
+	private int id;
+	private double vx;
+	private double vy;
+	private int state;
+	private double friction;
+	private int radius;
+	private int type; //0 for wizards, 1 for snaffles
+	private double mass;
+	
+	
+	public Entity(double x, double y) {
+		super(x,y);
+	}
+	
+	public Entity(int id, double x, double y, double vx, double vy) {
+		super(x,y);
+		this.id = id;
+		this.vx = vx;
+		this.vy = vy;
+	}
+	
+	public Entity(int id, double x, double y, double vx, double vy, int state) {
+		this(id, x, y, vx, vy);
+		this.state = state;
+	}
+	
+	public Entity(int id, double x, double y, double vx, double vy, int state, double friction, int radius, int type, double mass) {
+		this(id, x, y, vx, vy);
+		this.state = state;
+		this.friction = friction;
+		this.radius = radius;
+		this.type = type;
+		this.mass = mass;
+	}
+	
+
+	public int getState() {
+		return state;
+	}
+
+	public void setState(int state) {
+		this.state = state;
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public double getVx() {
+		return vx;
+	}
+
+	public void setVx(int vx) {
+		this.vx = vx;
+	}
+
+	public double getVy() {
+		return vy;
+	}
+
+	public void setVy(int vy) {
+		this.vy = vy;
+	}
+	
+	public Entity searchNearestSnaffle(List<Entity> snaffles) {
+		double minDistance = Integer.MAX_VALUE;
+		Entity nearestEntity = null;
+		
+		for(Entity snaffle : snaffles) {
+			double newDistance = computeDistanceSquare(snaffle);
+			if(newDistance < minDistance) {
+				minDistance = newDistance;
+				nearestEntity = snaffle;
+			}
+		}
+		
+		return nearestEntity;
+	}
+	
+	/**
+	 * Search nearest snaffle except the snaffle with input id
+	 * @param snaffles
+	 * @param id
+	 * @return
+	 */
+	public Entity searchNearestSnaffleExcept(List<Entity> snaffles, int id) {
+		double minDistance = Integer.MAX_VALUE;
+		Entity nearestEntity = null;
+		
+		for(Entity snaffle : snaffles) {
+			double newDistance = computeDistanceSquare(snaffle);
+			if(snaffle.getId()!=id && newDistance < minDistance) {
+				minDistance = newDistance;
+				nearestEntity = snaffle;
+			}
+		}
+		
+		return nearestEntity;
+	}
+	
+	public double computeDistanceSquare(Entity entity) {
+		return (this.getX()-entity.getX())*(this.getX()-entity.getX()) + (this.getY()-entity.getY())*(this.getY()-entity.getY());
+	}
+	
+	
+	public boolean isUsefulToAccio(Entity entity, Entity goal) {
+		if(this.isBetweenInX(entity, goal) && computeDistanceSquare(entity)>4000000) {
+			return true;
+		}
+		return false;
+	}
+	
+	
+	
+	public Point computeNextPositionInNbTour(int nbTour) {
+		double tempX = this.getX();
+		double tempY = this.getY();
+		double tempVx = this.vx;
+		double tempVy = this.vy;
+		
+		for(int i=0; i<nbTour; i++) {
+			
+			tempX += tempVx;
+			tempY += tempVy;
+			
+			//TODO: Check collision with wall (impulsion)
+			if(tempX + radius >16000) {
+				if(this.type == 1 && this.isInGoal(tempY)) {
+					tempX=16000;
+					tempVx=0;
+					tempVy=0;
+				} else {
+					tempX = 2*16000 -2*radius - tempX;
+					tempVx = -tempVx;
+				}
+
+			} else {
+				if(tempX - radius<0) {
+					if(this.type == 1 && this.isInGoal(tempY)) {
+						tempX=0;
+						tempVx=0;
+						tempVy=0;
+					} else {
+						tempX = 2*radius -tempX;
+						tempVx = -tempVx;
+					}
+				}
+			}
+			
+			//TODO: Check collision with wall (impulsion)
+			if(tempY + radius >7500) {
+				tempY = 2*7500 -2*radius - tempY;
+				tempVy = -tempVy;
+			} else {
+				if(tempY - radius<0) {
+					tempY = 2*radius -tempY;
+					tempVy = -tempVy;
+				}
+			}
+			
+			tempVx = tempVx * friction;
+			tempVy = tempVy * friction;
+			
+		}
+		
+
+		
+		Point newPosition = new Point(tempX, tempY);
+		return newPosition;
+	}
+	
+	public boolean isInGoal(double py) {
+		if(py>1900 && py<5600) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	public void stop() {
+		this.vx = 0;
+		this.vy = 0;
+	}
+	
+	public Collision collision(Entity entity) {
+		
+		// Square of the distance
+		double dist = Math.floor(this.distance2(entity));
+
+	    // Sum of the radii squared
+	    double sr = (this.radius + entity.radius)*(this.radius + entity.radius);
+
+	    // We take everything squared to avoid calling sqrt uselessly. It is better for performances
+
+	    if (Math.round(dist) < sr) {
+	    	System.err.println("ID " + id);
+	    	System.err.println("Dist " + dist);
+	    	System.err.println("Sr " + sr);
+	    	
+	        // Objects are already touching each other. We have an immediate collision.
+	        return new Collision(this, entity, 0.0);
+	    }
+
+	    // Optimisation. Objects with the same speed will never collide
+	    if (this.vx == entity.vx && this.vy == entity.vy) {
+	        return null;
+	    }
+
+	    // We place ourselves in the reference frame of u. u is therefore stationary and is at (0,0)
+	    double x = this.x - entity.x;
+	    double y = this.y - entity.y;
+	    Point myp = new Point(x, y);
+	    double vx = this.vx - entity.vx;
+	    double vy = this.vy - entity.vy;
+	    Point up = new Point(0, 0);
+
+	    // We look for the closest point to u (which is in (0,0)) on the line described by our speed vector
+	    Point p = up.closest(myp, new Point(x + vx, y + vy));
+
+	    // Square of the distance between u and the closest point to u on the line described by our speed vector
+	    double pdist = up.distance2(p);
+
+	    // Square of the distance between us and that point
+	    double mypdist = myp.distance2(p);
+
+	    // If the distance between u and this line is less than the sum of the radii, there might be a collision
+	    if (pdist < sr) {
+	     // Our speed on the line
+	        double length = Math.sqrt(vx*vx + vy*vy);
+
+	        // We move along the line to find the point of impact
+	        double backdist = Math.sqrt(sr - pdist);
+	        p.x = p.x - backdist * (vx / length);
+	        p.y = p.y - backdist * (vy / length);
+
+	        // If the point is now further away it means we are not going the right way, therefore the collision won't happen
+	        if (myp.distance2(p) > mypdist) {
+	            return null;
+	        }
+
+	        pdist = p.distance(myp);
+
+	        // The point of impact is further than what we can travel in one turn
+	        if (pdist > length) {
+	            return null;
+	        }
+
+	        // Time needed to reach the impact point
+	        double t = pdist / length;
+
+	        return new Collision(this, entity, t);
+	    }
+
+	    return null;
+	}
+	
+	
+	void bounce(Entity entity) {
+
+        // If a pod has its shield active its mass is 10 otherwise it's 1
+        //float m1 = this.shield ? 10 : 1;
+        //float m2 = entity.shield ? 10 : 1;
+        //float mcoeff = (m1 + m2) / (m1 * m2);
+
+//		double nx = this.x - entity.x;
+//		double ny = this.y - entity.y;
+//
+//        // Square of the distance between the 2 pods. This value could be hardcoded because it is always 800²
+//		double nxnysquare = nx*nx + ny*ny;
+//
+//		double dvx = this.vx - entity.vx;
+//		double dvy = this.vy - entity.vy;
+//
+//        // fx and fy are the components of the impact vector. product is just there for optimisation purposes
+//		double product = nx*dvx + ny*dvy;
+//		double fx = (nx * product) / Math.sqrt(nxnysquare);
+//		double fy = (ny * product) / Math.sqrt(nxnysquare);
+//
+//        // We apply the impact vector once
+//        this.vx -= fx;
+//        this.vy -= fy;
+//        entity.vx += fx;
+//        entity.vy += fy;
+
+//        // If the norm of the impact vector is less than 120, we normalize it to 120
+//        double impulse = Math.sqrt(fx*fx + fy*fy);
+//        if (impulse < 120.0) {
+//            fx = fx * 120.0 / impulse;
+//            fy = fy * 120.0 / impulse;
+//        }
+
+        // We apply the impact vector a second time
+        /*this.vx -= fx;
+        this.vy -= fy;
+        entity.vx += fx;
+        entity.vy += fy;*/
+
+        // This is one of the rare places where a Vector class would have made the code more readable.
+        // But this place is called so often that I can't pay a performance price to make it more readable*/
+		
+		/*System.err.println("Velocity before");
+		System.err.println("Velocity " + this.id + " : " + this.vx +" " + this.vy);
+		System.err.println("Velocity " + entity.id + " : " + entity.vx +" " + entity.vy);
+		
+		double dx1 = entity.x - this.x;
+		double dy1 = entity.y - this.y;
+		
+		double norm = Math.sqrt(dx1*dx1 + dy1*dy1);
+		
+		dx1/=norm;
+		dy1/=norm;
+		
+		double dx2 = -dy1;
+		double dy2 = dx1;
+		
+		double tempVx1 =
+		
+		
+		
+		double dvx = entity.vx - this.vx;
+		double dvy = entity.vy - this.vy;
+		
+		double newVx1 = ((double)this.vx*(this.mass-entity.mass)+2*entity.mass*(double)entity.vx)/(this.mass+entity.mass);
+		double newVx2 = ((double)entity.vx*(entity.mass-this.mass)+2*this.mass*(double)this.vx)/(this.mass+entity.mass);
+		
+		double newVy1 = ((double)this.vy*(this.mass-entity.mass)+2*entity.mass*(double)entity.vy)/(this.mass+entity.mass);
+		double newVy2 = ((double)entity.vy*(entity.mass-this.mass)+2*this.mass*(double)this.vy)/(this.mass+entity.mass);
+		
+		this.vx = newVx1;
+		this.vy = newVy1;
+		entity.vx =newVx2;
+		entity.vy = newVy2;*/
+		
+		/*// get the mtd
+	    double deltaX = this.x - entity.x; //(position.subtract(ball.position));
+	    double deltaY = this.y - entity.y;
+	    double d = Math.sqrt(deltaX*deltaX + deltaY*deltaY);
+	    
+	    // minimum translation distance to push balls apart after intersecting
+	    //Vector2d mtd = delta.multiply(((getRadius() + ball.getRadius())-d)/d);
+	    double mtdX = deltaX * (this.radius+entity.radius-d)/d;
+	    double mtdY = deltaY * (this.radius+entity.radius-d)/d;
+	    double mtdd = Math.sqrt(mtdX*mtdX + mtdY*mtdY);
+
+	    // resolve intersection --
+	    // inverse mass quantities
+	    double im1 = 1 / this.mass; 
+	    double im2 = 1 / entity.mass;
+
+	    // push-pull them apart based off their mass
+	    //position = position.add(mtd.multiply(im1 / (im1 + im2)));
+	    //ball.position = ball.position.subtract(mtd.multiply(im2 / (im1 + im2)));
+
+	    // impact speed
+	    //Vector2d v = (this.velocity.subtract(ball.velocity));
+	    double dvx = this.vx - entity.vx;
+	    double dvy = this.vy - entity.vy;
+	    
+	    //float vn = v.dot(mtd.normalize());
+	    mtdX = mtdX / mtdd;
+	    mtdY = mtdY / mtdd;
+	    double vn = dvx*mtdX + dvy*mtdY;
+	    
+	    // sphere intersecting but moving away from each other already
+	    if (vn > 0.0f) return;
+
+	    // collision impulse
+	    float i = (-(1.0f + Constants.restitution) * vn) / (im1 + im2);
+	    Vector2d impulse = mtd.multiply(i);
+
+	    // change in momentum
+	    this.velocity = this.velocity.add(impulse.multiply(im1));
+	    ball.velocity = ball.velocity.subtract(impulse.multiply(im2));*/
+		
+		
+		
+
+
+	    double collisionX = this.x - entity.x;
+	    double collisionY = this.y - entity.y;
+	    double distance = Math.sqrt(collisionX*collisionX+collisionY*collisionY);
+	    
+	    /*if (distance == 0.0) {              // hack to avoid div by zero
+	        collision = Vector(1.0, 0.0);
+	        distance = 1.0;
+	    }
+	    if (distance > 1.0)
+	        return;*/
+
+	    // Get the components of the velocity vectors which are parallel to the collision.
+	    // The perpendicular component remains the same for both fish
+	    collisionX = collisionX / distance;
+	    collisionY = collisionY / distance;
+	    
+	    double aci = this.vx*collisionX + this.vy*collisionY;
+	    double bci = entity.vx*collisionX + entity.vy*collisionY;
+
+	    // Solve for the new velocities using the 1-dimensional elastic collision equations.
+	    // Turns out it's really simple when the masses are the same.
+	    // FIXME: add mass in this formula
+	    double acf = bci;
+	    double bcf = aci;
+
+	    // Replace the collision velocity components with the new ones
+	    this.vx = (acf - aci) * collisionX;
+	    this.vy = (acf - aci) * collisionY;
+	    entity.vx = (bcf - bci) * collisionX;
+	    entity.vx = (bcf - bci) * collisionY;
+		
+		
+		System.err.println("Velocity " + this.id + " : " + this.vx +" " + this.vy);
+		System.err.println("Velocity " + entity.id + " : " + entity.vx +" " + entity.vy);
+		
+		
+    }
+	
+	public void move(double t) {
+	    this.x += this.vx * t;
+	    this.y += this.vy * t;
+	}
+	
+
+	
+	public void printAll() {
+		System.err.println("Id: " + id);
+		System.err.println("Vx: " +vx);
+		System.err.println("Vy: " +vy);
+		System.err.println("State " +state);
+		System.err.println("Radius " + radius);
+		System.err.println("Type " +type);
+	}
+
+	public void addMovement(Movement movement) {
+		
+		this.vx += movement.vx/this.mass;
+		this.vy += movement.vy/this.mass;
+		
+	}
+	
+	protected Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
+	
+}

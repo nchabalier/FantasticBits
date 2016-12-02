@@ -9,6 +9,8 @@ class Entity extends Point implements Cloneable{
 	protected double friction;
 	protected int radius;
 	protected int type; //0 for wizards, 1 for snaffles, 2 for bludger
+	private Entity snaffleCarried;
+	
 	public int getType() {
 		return type;
 	}
@@ -45,6 +47,9 @@ class Entity extends Point implements Cloneable{
 		this.mass = mass;
 	}
 	
+	public void setSnaffleCarried(Entity snaffle) {
+		snaffleCarried = snaffle;
+	}
 
 	public int getState() {
 		return state;
@@ -126,7 +131,21 @@ class Entity extends Point implements Cloneable{
 		return false;
 	}
 	
+	public void update(int x, int y, int vx, int vy) {
+		this.x = x;
+		this.y = y;
+		this.vx = vx;
+		this.vy = vy;
+	}
 	
+	public void update(int x, int y, int vx, int vy, int state) {
+		update(x,y,vx,vy);
+		this.state = state;
+	}
+	
+	public Entity getSnaffleCarried() {
+		return this.snaffleCarried;
+	}
 	
 	public Point computeNextPositionInNbTour(int nbTour) {
 		double tempX = this.getX();
@@ -200,11 +219,24 @@ class Entity extends Point implements Cloneable{
 	
 	public Collision collision(Entity entity) {
 		
+		double radius1 = this.radius;
+		double radius2 = entity.radius;
+		
+		//This block is for capture a snaffle by a wizard only if snaffle center is inside wizard
+		//If there is a wizard (0) and a snaffle (1)
+		if(( this.type == 1 &&  entity.type == 0 )||( this.type == 0 &&  entity.type == 1 )) {
+			if(this.type == 1) {
+				radius1 = 0;
+			} else {
+				radius2 = 0;
+			}
+		}
+		
 		// Square of the distance
 		double dist = this.distance2(entity);
 
 	    // Sum of the radii squared
-	    double sr = (this.radius + entity.radius)*(this.radius + entity.radius);
+	    double sr = (radius1 + radius2)*(radius1 + radius2);
 
 	    // We take everything squared to avoid calling sqrt uselessly. It is better for performances
 
@@ -306,7 +338,7 @@ class Entity extends Point implements Cloneable{
 	}
 	
 	public void print() {
-		System.err.println(this.id + " POSITION " + (int) x +" " + (int)y);
+		System.err.println(this.id + " POSITION " + (int) Math.round(x)  +" " + Math.round(y));
 	}
 	
 	public void printAll() {
