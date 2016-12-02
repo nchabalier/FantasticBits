@@ -35,7 +35,7 @@ class Player {
             List<Entity> wizards = new ArrayList<Entity>();
             List<Entity> opponentWizards = new ArrayList<Entity>();
             List<Entity> snaffles = new ArrayList<Entity>();
-            List<Entity> allwizards = new ArrayList<Entity>();
+            List<Entity> wizardsAndBludgers = new ArrayList<Entity>();
             
             
             int entities = in.nextInt(); // number of entities still in game
@@ -62,7 +62,7 @@ class Player {
 					opponentWizards.add(newEntity);
 					break;
 				case "SNAFFLE":
-	                newEntity = new Entity(entityId,x,y,vx,vy,state, 0.75, 150, 1, 0.5);
+	                newEntity = new Snaffle(entityId,x,y,vx,vy,state, 0.75, 150, 1, 0.5);
 					snaffles.add(newEntity);
 					break;
 				case "BLUDGER":
@@ -103,17 +103,17 @@ class Player {
 //            }
             
 
-            if(magic<3) {
-	            moveTo(new Entity(1333, 512), 150);
-	            movements[0]= new Movement(wizards.get(0),new Entity(1333, 512), 150);
-	            moveTo(new Entity(1000, 7000), 150);
-	            movements[1]= new Movement(wizards.get(1),new Entity(1000, 7000), 150);
-            } else {
+           // if(magic<3) {
+	            moveTo(new Entity(1000, 0), 150);
+	            movements[0]= new Movement(wizards.get(0),new Entity(1000, 0), 150);
+	            moveTo(new Entity(1000, 0), 150);
+	            movements[1]= new Movement(wizards.get(1),new Entity(1000, 0), 150);
+            /*} else {
             	 movements[0]=null;
             	 movements[1]=null;
             	 actio(snaffles.get(0));
             	 actio(snaffles.get(0));
-            }
+            }*/
             magic++;
             
             //Test of bludger movements
@@ -132,8 +132,8 @@ class Player {
             
             //----------------------------------------------------
             //------------Simulate collisions---------------------
-            allwizards.addAll(wizards);
-            allwizards.addAll(opponentWizards);
+            wizardsAndBludgers.addAll(wizards);
+            wizardsAndBludgers.addAll(opponentWizards);
             
             
 
@@ -159,19 +159,26 @@ class Player {
         	//Move all bludger
         	for(Entity entity : bludgers.values()) {
         		Bludger bludger = (Bludger) entity;
-        		Entity wizardChased = bludger.searchNearestEntityExcept(allwizards, bludger.getLastEntityId());
+        		Entity wizardChased = bludger.searchNearestEntityExcept(wizardsAndBludgers, bludger.getLastEntityId());
         		Movement movement = new Movement(entity, wizardChased, 1000);
         		bludger.addMovement(movement);
         	}
         	
         	
-        	allwizards.addAll(bludgers.values());
-        	//allwizards.addAll(snaffles);
+        	wizardsAndBludgers.addAll(bludgers.values());
+        	wizardsAndBludgers.addAll(snaffles);
         	
         	//printList(allwizards);
-            play(allwizards);
+            play(wizardsAndBludgers);
+            
+            //Update position of snaffle catched by wizards
+            for(Entity entity : snaffles) {
+            	Snaffle snaffle = (Snaffle) entity;
+            	snaffle.updatePosition();
+            }
+            
             System.err.println("------------------AFTER-----------------");
-            printList(allwizards);
+            printList(wizardsAndBludgers);
             
             //---------------------------------------------------
             
@@ -446,7 +453,7 @@ class Player {
     }
     
     
-    static void play(List<Entity> wizards) {
+    static void play(List<Entity> wizardsAndBludgers) {
     	
     	
         // This tracks the time during the turn. The goal is to reach 1.0
@@ -458,25 +465,57 @@ class Player {
             Collision firstCollision = null;
 
             // We look for all the collisions that are going to occur during the turn
-            for (int i = 0; i < wizards.size(); ++i) {
+            for (int i = 0; i < wizardsAndBludgers.size(); ++i) {
                 // Collision with another pod?
-                for (int j = i + 1; j < wizards.size(); ++j) {
-                    Collision col = wizards.get(i).collision(wizards.get(j));
+                for (int j = i + 1; j < wizardsAndBludgers.size(); ++j) {
+                    Collision col = wizardsAndBludgers.get(i).collision(wizardsAndBludgers.get(j));
                     
                     // If the collision occurs earlier than the one we currently have we keep it
                     if (col != null && col.t + t < 1.0 && (firstCollision == null || col.t < firstCollision.t)) {
-                        firstCollision = col;
+                    	
+                    	int typeA = col.entityA.getType();
+                    	int typeB = col.entityB.getType();
+                    	
+                    	//If there is a wizard (0) and a snaffle (1)
+                    	if(( typeA == 1 &&  typeB == 0 )||( typeA == 0 &&  typeB == 1 )) {
+                    		//System.err.println("*********************************************************");
+                    		Entity wizard;
+                    		Snaffle snaffle;
+                    		if(typeA == 0) {
+                    			wizard = col.entityA;
+                    			snaffle = (Snaffle) col.entityB;
+                    		} else {
+                    			snaffle = (Snaffle) col.entityA;
+                    			wizard = col.entityB;
+                    		}
+                    		
+                    		//If this snaffle is not catched, the wizard catch it
+                    		if(!snaffle.isCatched()) {
+                    			System.err.println("Snaffle " + snaffle.getId() + " catched by " + wizard.getId());
+                    			snaffle.setWizard(wizard);
+                    		}
+                    		//FIXME: what happens when snaffle it wizard which is carrying an other snaffle ?
+                    	} else {
+                            firstCollision = col;
+                    	}
                         
                     }
                 }
+                
+                Collision col = wizardsAndBludgers.get(i).collisionWithWall();
+                // If the collision occurs earlier than the one we currently have we keep it
+                if (col != null && col.t + t < 1.0 && (firstCollision == null || col.t < firstCollision.t)) {
+                    firstCollision = col;
+                    
+                }
+                
             }
 
             if (firstCollision == null) {
                 // No collision, we can move the pods until the end of the turn
-                for (int i = 0; i < wizards.size(); ++i) {
-                	//TODO move the wizard after collision
+                for (int i = 0; i < wizardsAndBludgers.size(); ++i) {
                 	//wizards.get(i).printAll();
-                    wizards.get(i).move(1.0 - t);
+                    wizardsAndBludgers.get(i).move(1.0 - t);
                     
                 }
 
@@ -484,9 +523,8 @@ class Player {
                 t = 1.0;
             } else {
                 // Move the pods to reach the time `t` of the collision
-                for (int i = 0; i < wizards.size(); ++i) {
-                	//TODO move the wizard after collision
-                    wizards.get(i).move(firstCollision.t - t);
+                for (int i = 0; i < wizardsAndBludgers.size(); ++i) {
+                    wizardsAndBludgers.get(i).move(firstCollision.t);
                 }
 
                 // Play out the collision
@@ -495,7 +533,7 @@ class Player {
                 //Change target of the bludger
                 //TODO: WARNING : what happens if bludger touch 2 wizards in the same tour?
                 if(firstCollision.entityA.getState() == 2) {
-                	if(firstCollision.entityA.getState() == 1) {
+                	if(firstCollision.entityB.getState() == 1) {
                 		Bludger bludger = (Bludger) firstCollision.entityA; 
                 		bludger.setLastEntityId(firstCollision.entityB.id);
                 	}
