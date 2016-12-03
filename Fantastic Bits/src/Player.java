@@ -28,7 +28,7 @@ class Player {
         
         Movement[] movements = new Movement[4];
         
-        HashMap<Integer, Entity> bludgers = new HashMap<Integer, Entity>();
+        HashMap<Integer, Entity> bludgersMap = new HashMap<Integer, Entity>();
         HashMap<Integer, Entity> snafflesMap = new HashMap<Integer, Entity>();
         HashMap<Integer, Entity> wizardsMap = new HashMap<Integer, Entity>();
         
@@ -42,6 +42,11 @@ class Player {
             
             
             int entities = in.nextInt(); // number of entities still in game
+            
+            for(Entity entity : snafflesMap.values()) {
+            	Snaffle snaffle = (Snaffle) entity;
+            	snaffle.setInGoal(true);
+            }
             
             
             for (int i = 0; i < entities; i++) {
@@ -83,17 +88,18 @@ class Player {
 						//newEntity.printAll();
 					} else {
 						snaffle.update(x,y,vx,vy);
+						snaffle.setInGoal(false);
 						//bludger.printAll();
 					}
 					
 					break;
 				case "BLUDGER":
 					
-					Bludger bludger = (Bludger) bludgers.get(entityId);
+					Bludger bludger = (Bludger) bludgersMap.get(entityId);
 					if(bludger==null) {
 						bludger = new Bludger(entityId,x,y,vx,vy,state, 0.9, 200, 2, 8);
 						bludger.setLastEntityId(-1);
-						bludgers.put(entityId, bludger);
+						bludgersMap.put(entityId, bludger);
 						//newEntity.printAll();
 					} else {
 						bludger.update(x,y,vx,vy);
@@ -109,8 +115,23 @@ class Player {
                 
             }
             
+
+            
             List<Entity> snaffles = new ArrayList<Entity>(snafflesMap.values());
             List<Entity> wizards = new ArrayList<Entity>(wizardsMap.values());
+            List<Entity> bludgers = new ArrayList<Entity>(bludgersMap.values());
+            
+
+            //Check snaffle which are in goal
+            for (Iterator<Entity> iterator = snaffles.iterator(); iterator.hasNext();) {
+	             Snaffle snaffle = (Snaffle) iterator.next();
+	             
+	          	if(snaffle.isIntoGoal()) {
+	          		snafflesMap.remove(snaffle.getId());
+	          		iterator.remove();
+
+	         	}
+	         }
             
             
             //Reset movements
@@ -195,8 +216,10 @@ class Player {
                 	//wizard.setState(0);
                     throwTo(goals[myTeamId], 500);
                     Snaffle snaffle = (Snaffle) wizard.getSnaffleCarried();
-                    System.err.println("SNAFFLE : " + snaffle.getId());
-                    snaffle.throwToPosition(goals[myTeamId], 500);
+                    if(snaffle!=null) {
+                        System.err.println("SNAFFLE : " + snaffle.getId());
+                        snaffle.throwToPosition(goals[myTeamId], 500);
+                    }
                 }
                 
 
@@ -206,90 +229,49 @@ class Player {
             
             
             //----------------------------------------Predict movement of next turn----------------------------------------------
+            //Move all wizards
+            //FIXME we move only our wizards here
+        	for(int i=0; i<2; i++) {
+        		if(movements[i]!=null) {
+        			wizards.get(i).addMovement(movements[i]);
+        		}
+        	}
             
-          //Throw snaffle for opponent team
-            for(Entity entity : opponentWizards) {
-            	if(entity.getState()==1) {
-            		Snaffle snaffle = (Snaffle) findSnaffleAtPosition(entity, snaffles);
-            		entity.setSnaffleCarried(snaffle);
-	                
-	                //Throw this snaffle
-	                snaffle.throwToPosition(goals[myTeamId], 500);
-            	}
-            }
+        	long startTime = System.currentTimeMillis();
+        	
+
+            List<Entity> opponentWizardsCopy = null;
+            List<Entity> wizardsCopy = null; 
+            List<Entity> bludgersCopy = null;
+            List<Entity> snafflesCopy = null;
+			try {
+				opponentWizardsCopy = cloneList(opponentWizards);
+	            wizardsCopy = cloneList(wizards);
+	            bludgersCopy = cloneList(bludgers);
+	            snafflesCopy = cloneList(snaffles);
+			} catch (CloneNotSupportedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
             
-           
-
-             
-             //------------Simulate collisions---------------------
-             allEntities.addAll(wizards);
-             allEntities.addAll(opponentWizards);
-             
-             
+            
+        	Simulation simulation = new Simulation(opponentWizardsCopy, wizardsCopy, bludgersCopy, snafflesCopy, 1, myTeamId);
+        	simulation.run();
 
 
-             //Move all wizards
-             //FIXME we move only our wizards here
-         	for(int i=0; i<2; i++) {
-         		if(movements[i]!=null) {
-         			wizards.get(i).addMovement(movements[i]);
-         		}
-         	}
-         	
-         	//Move all bludger
-         	for(Entity entity : bludgers.values()) {
-         		Bludger bludger = (Bludger) entity;
-         		Entity wizardChased = bludger.searchNearestEntityExcept(allEntities, bludger.getLastEntityId());
-         		Movement movement = new Movement(entity, wizardChased, 1000);
-         		bludger.addMovement(movement);
-         	}
-         	
-         	//Apply spells to all the snaffles
-         	for(Entity entity : snaffles) {
-         		Snaffle snaffle = (Snaffle) entity;
-         		snaffle.applySpells();
-         	}
-         	
-         	
-         	allEntities.addAll(bludgers.values());
-         	allEntities.addAll(snaffles);
-         	
-         	//printList(allwizards);
-             play(allEntities);
-             
-             
-             //Update position of snaffle catched by wizards
-             for (Iterator<Entity> iterator = snaffles.iterator(); iterator.hasNext();) {
-                 Snaffle snaffle = (Snaffle) iterator.next();
-                 
-              	if(snaffle.getX()<=0 ||snaffle.getX()>=16000) {
-             		//TODO: add a goal for me or for opponents
 
-             		System.err.println("GOOOOOOOOOOOAAAAAAAAAAAAAAAAALLLLLLLLLLLLLLLLLLL !!!! " + snaffle.getId());
-
-              		snafflesMap.remove(snaffle.getId());
-              		iterator.remove();
-             	} else {
-                 	snaffle.updatePosition();
-             	}
-             }
+            long endTime = System.currentTimeMillis();
+            System.err.println("Total execution time: " + (endTime-startTime) + "ms"); 
              
              System.err.println("------------------AFTER-----------------");
-             printList(allEntities);
+             printList(simulation.getAllEntities());
              
              //---------------------------------------------------
             
         }
     }
     
-    public static Entity findSnaffleAtPosition(Point point, List<Entity> snaffles) {
-    	for(Entity entity : snaffles) {
-    		if((point.getX() == entity.getX()) && (point.getY() == entity.getY())) {
-    			return entity;
-    		}
-    	}
-    	return null;
-    }
+
     
     public static List<Entity> cloneList(List<Entity> list) throws CloneNotSupportedException {
         List<Entity> clone = new ArrayList<Entity>(list.size());
@@ -336,38 +318,7 @@ class Player {
         System.out.println(entity.getId());
     }
     
-    public static Entity[] findNearestSnaffles(List<Entity> wizards, List<Entity> snaffles) {
-    	
-    	if(snaffles.size()>1) {
-	    	Entity[] snaffles1 = new Entity[2];
-	    	
-	    	snaffles1[0] = wizards.get(0).searchNearestEntity(snaffles);
-	    	//snaffles1[1] = wizards.get(1).searchNearestSnaffleExcept(snaffles, snaffles1[0].getId());
-	    	snaffles1[1] = wizards.get(1).searchNearestEntity(snaffles);
-	    	
-	    	double totalDistanceSquare1 = wizards.get(0).computeDistanceSquare(snaffles1[0]);
-	    	totalDistanceSquare1+= wizards.get(1).computeDistanceSquare(snaffles1[1]);
-	    	
-	    	Entity[] snaffles2 = new Entity[2];
-	    	
-	    	snaffles2[1] = wizards.get(1).searchNearestEntity(snaffles);
-	    	//snaffles2[0] = wizards.get(0).searchNearestSnaffleExcept(snaffles, snaffles2[1].getId());
-	    	snaffles2[0] = wizards.get(0).searchNearestEntity(snaffles);
-	    	
-	    	double totalDistanceSquare2 = wizards.get(0).computeDistanceSquare(snaffles2[0]);
-	    	totalDistanceSquare2+= wizards.get(1).computeDistanceSquare(snaffles2[1]);
-	    	
-	    	if(totalDistanceSquare1 > totalDistanceSquare2) {
-	    		return snaffles2;
-	    	} else {
-	        	return snaffles1;
-	    	}
-    	}else {
-    		return new Entity[]{snaffles.get(0), snaffles.get(0)};
-    	}
-    	
 
-    }
     
     /**
      * Check if segment [Point1, Point2] intersect PERPANDICULAR segment [Point3, Point4] (the goal)
@@ -483,113 +434,40 @@ class Player {
     	return snafflesGoingToGoal;
     }
     
-    
-    static void play(List<Entity> wizardsAndBludgers) {
+    public static Entity[] findNearestSnaffles(List<Entity> wizards, List<Entity> snaffles) {
     	
+    	if(snaffles.size()>1) {
+	    	Entity[] snaffles1 = new Entity[2];
+	    	
+	    	snaffles1[0] = wizards.get(0).searchNearestEntity(snaffles);
+	    	//snaffles1[1] = wizards.get(1).searchNearestSnaffleExcept(snaffles, snaffles1[0].getId());
+	    	snaffles1[1] = wizards.get(1).searchNearestEntity(snaffles);
+	    	
+	    	double totalDistanceSquare1 = wizards.get(0).computeDistanceSquare(snaffles1[0]);
+	    	totalDistanceSquare1+= wizards.get(1).computeDistanceSquare(snaffles1[1]);
+	    	
+	    	Entity[] snaffles2 = new Entity[2];
+	    	
+	    	snaffles2[1] = wizards.get(1).searchNearestEntity(snaffles);
+	    	//snaffles2[0] = wizards.get(0).searchNearestSnaffleExcept(snaffles, snaffles2[1].getId());
+	    	snaffles2[0] = wizards.get(0).searchNearestEntity(snaffles);
+	    	
+	    	double totalDistanceSquare2 = wizards.get(0).computeDistanceSquare(snaffles2[0]);
+	    	totalDistanceSquare2+= wizards.get(1).computeDistanceSquare(snaffles2[1]);
+	    	
+	    	if(totalDistanceSquare1 > totalDistanceSquare2) {
+	    		return snaffles2;
+	    	} else {
+	        	return snaffles1;
+	    	}
+    	}else {
+    		return new Entity[]{snaffles.get(0), snaffles.get(0)};
+    	}
     	
-        // This tracks the time during the turn. The goal is to reach 1.0
-        double t = 0.0;
 
-        while (t < 1.0) {
-        	
-        	
-            Collision firstCollision = null;
-
-            // We look for all the collisions that are going to occur during the turn
-            for (int i = 0; i < wizardsAndBludgers.size(); ++i) {
-                // Collision with another pod?
-                for (int j = i + 1; j < wizardsAndBludgers.size(); ++j) {
-                    Collision col = wizardsAndBludgers.get(i).collision(wizardsAndBludgers.get(j));
-                    
-                    // If the collision occurs earlier than the one we currently have we keep it
-                    if (col != null && col.t + t < 1.0 && (firstCollision == null || col.t < firstCollision.t)) {
-                    	
-                    	int typeA = col.entityA.getType();
-                    	int typeB = col.entityB.getType();
-                    	
-                    	//If there is a wizard (0) and a snaffle (1)
-                    	if(( typeA == 1 &&  typeB == 0 )||( typeA == 0 &&  typeB == 1 )) {
-                    		//System.err.println("*********************************************************");
-                    		Entity wizard;
-                    		Snaffle snaffle;
-                    		if(typeA == 0) {
-                    			wizard = col.entityA;
-                    			snaffle = (Snaffle) col.entityB;
-                    		} else {
-                    			snaffle = (Snaffle) col.entityA;
-                    			wizard = col.entityB;
-                    		}
-                    		
-                    		//If this snaffle is not catched, the wizard catch it
-                    		if(!snaffle.isCatched() && wizard.getState() == 0) {
-                    			System.err.println("Snaffle " + snaffle.getId() + " catched by " + wizard.getId());
-                    			snaffle.setWizard(wizard);
-                    			wizard.setSnaffleCarried(snaffle);
-                    			wizard.setState(1);
-                    		}
-                    		//FIXME: what happens when snaffle it wizard which is carrying an other snaffle ?
-                    	} else {
-                            firstCollision = col;
-                    	}
-                        
-                    }
-                }
-                
-                Collision col = wizardsAndBludgers.get(i).collisionWithWall();
-                // If the collision occurs earlier than the one we currently have we keep it
-                if (col != null && col.t + t < 1.0 && (firstCollision == null || col.t < firstCollision.t)) {
-                    firstCollision = col;
-                    
-                }
-                
-            }
-
-            if (firstCollision == null) {
-                // No collision, we can move the pods until the end of the turn
-                for (int i = 0; i < wizardsAndBludgers.size(); ++i) {
-                	//wizards.get(i).printAll();
-                    wizardsAndBludgers.get(i).move(1.0 - t);
-                    
-                }
-
-                // End of the turn
-                t = 1.0;
-            } else {
-                // Move the pods to reach the time `t` of the collision
-                for (int i = 0; i < wizardsAndBludgers.size(); ++i) {
-                    wizardsAndBludgers.get(i).move(firstCollision.t);
-                }
-
-                // Play out the collision
-                firstCollision.entityA.bounce(firstCollision.entityB);
-                
-                //Change target of the bludger
-                //TODO: WARNING : what happens if bludger touch 2 wizards in the same tour?
-                if(firstCollision.entityA.getState() == 2) {
-                	if(firstCollision.entityB.getState() == 1) {
-                		Bludger bludger = (Bludger) firstCollision.entityA; 
-                		bludger.setLastEntityId(firstCollision.entityB.id);
-                	}
-                } else {
-                	if(firstCollision.entityB.getState() == 2) {
-                		if(firstCollision.entityA.getState() == 1) {
-                    		Bludger bludger = (Bludger) firstCollision.entityB; 
-                    		bludger.setLastEntityId(firstCollision.entityA.id);
-                		}
-                	}
-                }
-                
-                firstCollision.print();
-
-                t += firstCollision.t;
-            }
-        }
-        
-
-
-        /*for (int i = 0; i < wizards.length; ++i) {
-            wizards[i].end();
-        }*/
     }
+    
+    
+    
 
 }

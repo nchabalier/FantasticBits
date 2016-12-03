@@ -15,6 +15,10 @@ class Snaffle extends Entity{
 		return isInGoal;
 	}
 	
+	public void setInGoal(boolean bool) {
+		isInGoal = bool;
+	}
+	
 	public void accio(Entity entity) {
 		spellers.add(entity);
 		typesOfSpell.add("ACCIO");
